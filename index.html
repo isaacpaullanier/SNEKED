@@ -226,6 +226,24 @@
     border-color: #fff;
     color: #fff;
 }
+
+/* Nightmare difficulty button styling */
+.difficulty-btn.nightmare-btn {
+    color: #ff0000;
+    border-color: #ff0000;
+    font-size: 1rem;
+    width: 100%;
+    margin-top: 10px;
+    letter-spacing: 3px;
+}
+
+.difficulty-btn.nightmare-btn.selected {
+    background: rgba(255, 0, 0, 0.3);
+    border-color: #ff0000;
+    color: #ff0000;
+    box-shadow: 0 0 15px rgba(255, 0, 0, 0.5);
+}
+
         .menu-btn:active, .power-btn:active { background: rgba(255, 255, 255, 0.1); transform: scale(0.95); }
         .power-btn.selected { background: #fff; color: #000; border-color: #fff; }
         
@@ -293,13 +311,14 @@
     <button class="menu-btn" onclick="showPowerupSelect(1)">SINGLE PLAYER</button>
     <button class="menu-btn" onclick="withVibrate(() => showPowerupSelect(2))">MULTIPLAYER</button>
     <button class="menu-btn" onclick="showControls()">CONTROLS</button>
+    <button class="menu-btn" onclick="showStats()">STATS</button>
 </div>
 
 <div id="powerup-screen">
         <button class="back-btn" id="p1-back" onclick="goToMenu()">BACK</button>
     <button class="back-btn" id="p2-back" onclick="goToMenu()" style="display:none;">BACK</button>
     <div class="selection-area p1-selection" id="p1-select-area">
-    <div class="subtitle">P2: Power-Up & Color</div>
+    <div class="subtitle" id="p1-subtitle">P2: Power-Up & Color</div>
     <button class="power-btn" onclick="selectPower(1, 1)">EMP</button>
     <button class="power-btn" onclick="selectPower(1, 2)">VENOM</button>
     <button class="power-btn" onclick="selectPower(1, 3)">GHOST</button>
@@ -314,11 +333,12 @@
             <div class="color-box" style="background: #ff0000;" onclick="selectColor(1, '#ff0000')"></div>
             <div class="color-box" style="background: #ff8800;" onclick="selectColor(1, '#ff8800')"></div>
         </div>
-            <!-- Difficulty buttons for Single Player (horizontal) -->
+            <!--             <!-- Difficulty buttons for Single Player (horizontal) -->
     <div class="difficulty-row-horizontal" id="p1-difficulty-row">
         <button class="difficulty-btn" onclick="selectDifficulty(1, 'easy')">EASY</button>
         <button class="difficulty-btn selected" onclick="selectDifficulty(1, 'normal')">NORMAL</button>
         <button class="difficulty-btn" onclick="selectDifficulty(1, 'hard')">HARD</button>
+        <button class="difficulty-btn nightmare-btn" onclick="selectDifficulty(1, 'nightmare')">NIGHTMARE</button>
     </div>
     <!-- Difficulty buttons for Multiplayer (vertical, left side) -->
     <div class="difficulty-row-vertical" id="p1-difficulty-vertical">
@@ -523,6 +543,41 @@
     <div style="font-size: 3rem; color: #ff00ff; font-weight: 900;">PLACEHOLDER</div>
     <div style="color: #00f2ff; font-size: 1.2rem; margin-top: 20px;">This menu will be implemented later</div>
 </div>
+
+<!-- STATS SCREEN -->
+<div id="stats-screen" style="display: none; position: absolute; width: 100%; height: 100%; background: #000; z-index: 1000; overflow: hidden;">
+    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding: 20px; box-sizing: border-box;">
+        <button class="back-btn" style="position: absolute; top: 20px; left: 20px;" onclick="backToMainMenuFromStats()">BACK</button>
+        
+        <div style="font-size: 3rem; color: #ff00ff; font-weight: 900; margin-bottom: 30px;">STATS</div>
+        
+        <div style="width: 90%; max-width: 500px; background: rgba(255, 255, 255, 0.05); border: 2px solid #333; border-radius: 10px; padding: 20px; text-align: left;">
+            <div style="color: #00f2ff; font-size: 1.2rem; margin-bottom: 20px; display: flex; justify-content: space-between;">
+                <span>Highest Score:</span>
+                <span id="stat-highest-score" style="color: gold;">0</span>
+            </div>
+            <div style="color: #00f2ff; font-size: 1.2rem; margin-bottom: 20px; display: flex; justify-content: space-between;">
+                <span>Total Deaths:</span>
+                <span id="stat-total-deaths" style="color: #ff0000;">0</span>
+            </div>
+            <div style="color: #00f2ff; font-size: 1.2rem; margin-bottom: 20px; display: flex; justify-content: space-between;">
+                <span>Snakes Killed:</span>
+                <span id="stat-snakes-killed" style="color: #2bff00;">0</span>
+            </div>
+            <div style="color: #00f2ff; font-size: 1.2rem; margin-bottom: 20px; display: flex; justify-content: space-between;">
+                <span>Longest Leader Time:</span>
+                <span id="stat-longest-leader" style="color: gold;">0s</span>
+            </div>
+            <div style="color: #00f2ff; font-size: 1.2rem; display: flex; justify-content: space-between;">
+                <span>Games Played:</span>
+                <span id="stat-games-played" style="color: #fff;">0</span>
+            </div>
+        </div>
+        
+        <button class="menu-btn" style="margin-top: 30px;" onclick="resetStats()">RESET STATS</button>
+    </div>
+</div>
+
 <div id="game-wrapper">
     <div id="top-area" class="screen">
         <button class="exit-btn" id="p1-exit" onclick="pauseGame(1)">PAUSE</button>
@@ -610,12 +665,119 @@ const CONFIG = {
     AI_DASH_COOLDOWN: 5000,
     AI_HUNT_LIMIT: 20000,
     AI_CUTOFF_DISTANCE: 700,
-    AI_CUTOFF_ANGLE: 1.0,         // Sharpness of the turn (0.5 to 1.2)
-    AI_CUTOFF_HOLD_TIME: 1500,    // Duration to hold the direction (ms)
-    AI_CUTOFF_SAFETY_MULT: 2.5,   // Look-ahead distance for failsafe
-    hunterLimit: 100              // Default to effectively unlimited
+    AI_CUTOFF_ANGLE: 1.0,
+    AI_CUTOFF_HOLD_TIME: 1500,
+    AI_CUTOFF_SAFETY_MULT: 2.5,
+    hunterLimit: 100,
+    
+    // === DIFFICULTY SETTINGS ===
+    difficulty: {
+        easy: {
+            aiCount: 15,
+            speedMultiplier: 0.75,  // 25% slower
+            hunterLimit: 100,
+            playerSpeedMult: 1.0
+        },
+        normal: {
+            aiCount: 30,
+            speedMultiplier: 1.0,
+            hunterLimit: 100,
+            playerSpeedMult: 1.0
+        },
+        hard: {
+            aiCount: 45,
+            speedMultiplier: 1.0,
+            hunterLimit: 5,
+            playerSpeedMult: 1.15  // 15% faster player
+        },
+        nightmare: {
+            aiCount: 60,
+            speedMultiplier: 1.0,
+            hunterLimit: 6,
+            playerSpeedMult: 1.15,
+            fogEnabled: true,
+            fogVisibleRadius: 400,     // Adjust this for visible area around player
+            fogOpacity: 0.85,           // Adjust this for fog darkness (0.0-1.0)
+            fogAIOpacity: 0.15          // How visible AI snakes are through fog (0.0-1.0)
+        }
+    }
 };
 const AI_NAMES = ["Xenon", "Viper", "Glitch", "Shadow", "Neon", "Zero", "Cipher", "Apex", "Volt", "Ghost", "Rogue", "Orbit", "Pixel", "Laser", "Drift", "Static", "Havoc", "Echo", "Rift", "Nova", "Flux", "Ozone", "Byte", "Ion", "Dusk"];
+
+// === STATS TRACKING ===
+let gameStats = {
+    highestScore: 0,
+    totalDeaths: 0,
+    snakesKilled: 0,
+    longestLeaderTime: 0, // in milliseconds
+    gamesPlayed: 0
+};
+
+let currentLeaderStartTime = 0;
+let wasLeaderLastFrame = false;
+
+// Load stats from localStorage
+function loadStats() {
+    const saved = localStorage.getItem('snekedStats');
+    if (saved) {
+        try {
+            gameStats = JSON.parse(saved);
+        } catch (e) {
+            console.error('Failed to load stats:', e);
+        }
+    }
+    updateStatsDisplay();
+}
+
+// Save stats to localStorage
+function saveStats() {
+    try {
+        localStorage.setItem('snekedStats', JSON.stringify(gameStats));
+    } catch (e) {
+        console.error('Failed to save stats:', e);
+    }
+}
+
+// Update stats display
+function updateStatsDisplay() {
+    document.getElementById('stat-highest-score').textContent = gameStats.highestScore;
+    document.getElementById('stat-total-deaths').textContent = gameStats.totalDeaths;
+    document.getElementById('stat-snakes-killed').textContent = gameStats.snakesKilled;
+    const longestSeconds = Math.floor(gameStats.longestLeaderTime / 1000);
+    document.getElementById('stat-longest-leader').textContent = longestSeconds + 's';
+    document.getElementById('stat-games-played').textContent = gameStats.gamesPlayed;
+}
+
+// Show stats screen
+function showStats() {
+    document.getElementById('menu').style.display = 'none';
+    document.getElementById('stats-screen').style.display = 'block';
+    updateStatsDisplay();
+}
+
+// Back to menu from stats
+function backToMainMenuFromStats() {
+    document.getElementById('stats-screen').style.display = 'none';
+    document.getElementById('menu').style.display = 'flex';
+}
+
+// Reset all stats
+function resetStats() {
+    if (confirm('Are you sure you want to reset all stats? This cannot be undone!')) {
+        gameStats = {
+            highestScore: 0,
+            totalDeaths: 0,
+            snakesKilled: 0,
+            longestLeaderTime: 0,
+            gamesPlayed: 0
+        };
+        saveStats();
+        updateStatsDisplay();
+    }
+}
+
+// Load stats on page load
+window.addEventListener('load', loadStats);
 
 let playerSpeedMult = 1.0;        // Global multiplier for player speed
 let foods = [];
@@ -679,9 +841,10 @@ function showPowerupSelect(mode) {
     const divider = document.getElementById('menu-divider');
     
     if (mode === 1) { 
-        p1Area.classList.remove('p1-multi-style'); 
-        p2Area.style.display = 'none'; 
-        divider.style.display = 'none';
+    p1Area.classList.remove('p1-multi-style'); 
+    p2Area.style.display = 'none'; 
+    divider.style.display = 'none';
+    document.getElementById('p1-subtitle').textContent = 'P1: Power-Up & Color';
         // Show P1 colors, Hide P2 colors
         document.getElementById('p1-color-row').style.display = 'flex';
         document.getElementById('p2-color-row').style.display = 'none';
@@ -693,9 +856,10 @@ function showPowerupSelect(mode) {
         document.getElementById('p1-difficulty-vertical').style.display = 'none';
         document.getElementById('p2-difficulty-vertical').style.display = 'none';
     } else { 
-        p1Area.classList.add('p1-multi-style'); 
-        p2Area.style.display = 'flex'; 
-        divider.style.display = 'block';
+    p1Area.classList.add('p1-multi-style'); 
+    p2Area.style.display = 'flex'; 
+    divider.style.display = 'block';
+    document.getElementById('p1-subtitle').textContent = 'P2: Power-Up & Color';
         // Show BOTH color rows for multiplayer
         document.getElementById('p1-color-row').style.display = 'flex';
         document.getElementById('p2-color-row').style.display = 'flex';
@@ -787,27 +951,20 @@ function checkStartConditions() {
 }
 
 function startGame() {
+    // Track game started
+    gameStats.gamesPlayed++;
+    saveStats();
+    
     // --- DIFFICULTY LOGIC START ---
-    // 1. Reset Defaults (Normal Mode)
-    CONFIG.AI_COUNT = 30;
-    CONFIG.startSpeed = 3.57;
-    CONFIG.minSpeed = 2.10;
-    CONFIG.hunterLimit = 100; 
-    playerSpeedMult = 1.0;
-
-    // 2. Apply Changes
-    // (In Multiplayer, we already confirmed p1Difficulty === p2Difficulty, so we check p1)
-    if (p1Difficulty === 'easy') {
-        CONFIG.AI_COUNT = 15;
-        // Reduce ALL speeds by 25%
-        CONFIG.startSpeed = 3.57 * 0.75; 
-        CONFIG.minSpeed = 2.10 * 0.75;
-    } 
-    else if (p1Difficulty === 'hard') {
-        CONFIG.AI_COUNT = 45;
-        playerSpeedMult = 1.15; // Increase PLAYER speed by 15%
-        CONFIG.hunterLimit = 5; // Cap simultaneous hunters per player
-    }
+    const difficultySettings = CONFIG.difficulty[p1Difficulty];
+    
+    CONFIG.AI_COUNT = difficultySettings.aiCount;
+    CONFIG.hunterLimit = difficultySettings.hunterLimit;
+    playerSpeedMult = difficultySettings.playerSpeedMult;
+    
+    // Apply speed multiplier
+    CONFIG.startSpeed = 3.57 * difficultySettings.speedMultiplier;
+    CONFIG.minSpeed = 2.10 * difficultySettings.speedMultiplier;
     // --- DIFFICULTY LOGIC END ---
 
     document.getElementById('powerup-screen').style.display = 'none';
@@ -1190,7 +1347,7 @@ if (wasBoosting) {
     }
 }
 
-        if (this.x < 0 || this.x > WORLD.width || this.y < 0 || this.y > WORLD.height) { this.die(); return; }
+                if (this.x < 0 || this.x > WORLD.width || this.y < 0 || this.y > WORLD.height) { this.die(); return; }
 
                 // --- COLLISION LOGIC: Only Ghost and Killshot provide immunity ---
 if (Date.now() > this.ghostUntil && Date.now() > this.killshotActiveUntil) {
@@ -1202,7 +1359,15 @@ if (Date.now() > this.ghostUntil && Date.now() > this.killshotActiveUntil) {
             if(!seg) continue;
             const distSq = (this.x - seg.x)**2 + (this.y - seg.y)**2;
             const limit = (this.width/2 + seg.w/2) * 0.85; 
-            if (distSq < limit * limit) { this.die(); return; }
+            if (distSq < limit * limit) { 
+                // Track kills: if an AI snake dies by hitting a player's tail
+                if (this.isAI && !other.isAI) {
+                    gameStats.snakesKilled++;
+                    saveStats();
+                }
+                this.die(); 
+                return; 
+            }
         }
     }
 }
@@ -1728,8 +1893,16 @@ if (this.x < 120 || this.x > WORLD.width - 120 ||
         this.currentlyChasing = null;
     }
 
-    die() {
-        if (this.dead) return; this.dead = true;
+        die() {
+        if (this.dead) return; 
+        this.dead = true;
+        
+        // Track player deaths
+        if (!this.isAI) {
+            gameStats.totalDeaths++;
+            saveStats();
+        }
+        
         this.stopChasing();
                 // Dropped food from body - NOW WITH SPAWN TIME
         this.tail.forEach((seg, i) => {
@@ -1845,6 +2018,38 @@ function updateVenomPhysics() {
 
 function render(ctx, cameraSnake) {
     ctx.save(); ctx.translate(ctx.canvas.width/2 - cameraSnake.x, ctx.canvas.height/2 - cameraSnake.y);
+    
+    // === NIGHTMARE FOG (RENDERED FIRST) ===
+    const nightmareSettings = CONFIG.difficulty.nightmare;
+    const isNightmare = p1Difficulty === 'nightmare' && nightmareSettings.fogEnabled;
+    
+    if (isNightmare && !cameraSnake.isAI) {
+        // Save current transform
+        ctx.save();
+        // Reset to screen coordinates
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        
+        // Create radial gradient for fog
+        const centerX = ctx.canvas.width / 2;
+        const centerY = ctx.canvas.height / 2;
+        const maxDim = Math.max(ctx.canvas.width, ctx.canvas.height);
+        
+        const fogGrad = ctx.createRadialGradient(
+            centerX, centerY, nightmareSettings.fogVisibleRadius,
+            centerX, centerY, maxDim
+        );
+        fogGrad.addColorStop(0, `rgba(0, 0, 0, 0)`);
+        fogGrad.addColorStop(0.3, `rgba(0, 0, 0, ${nightmareSettings.fogOpacity * 0.5})`);
+        fogGrad.addColorStop(1, `rgba(0, 0, 0, ${nightmareSettings.fogOpacity})`);
+        
+        ctx.fillStyle = fogGrad;
+        ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        ctx.restore();
+        
+        // Translate back for world rendering
+        ctx.translate(ctx.canvas.width/2 - cameraSnake.x, ctx.canvas.height/2 - cameraSnake.y);
+    }
+    
                 // --- GRAVITY WELL VISUAL WITH SMOOTH FADE ---
     const gravityTimeLeft = cameraSnake.gravityActiveUntil - Date.now();
     const gravityDuration = CONFIG.gravityActiveDuration;
@@ -1918,9 +2123,23 @@ function render(ctx, cameraSnake) {
     }
 
     // --- FIXED AURA & BODY BOOST RENDERING ---
-    allSnakes.forEach(s => { 
+        allSnakes.forEach(s => { 
         if (s.dead) return;
         if (Date.now() < s.ghostUntil && s !== cameraSnake) return;
+
+        // Calculate nightmare fog dimming for AI snakes
+        const nightmareSettings = CONFIG.difficulty.nightmare;
+        const isNightmare = p1Difficulty === 'nightmare' && nightmareSettings.fogEnabled;
+        let nightmareDim = 1.0;
+        
+        if (isNightmare && s.isAI) {
+            const distToCamera = Math.sqrt(
+                (s.x - cameraSnake.x) ** 2 + (s.y - cameraSnake.y) ** 2
+            );
+            if (distToCamera > nightmareSettings.fogVisibleRadius) {
+                nightmareDim = nightmareSettings.fogAIOpacity;
+            }
+        }
 
         let auraColor = null;
 const isBoosting = Date.now() < s.boostActiveUntil;
@@ -2076,11 +2295,23 @@ if (isBoosting) {
     // Reset alpha to 100% so the snakes don't look transparent too!
     ctx.globalAlpha = 1.0;
     
-    allSnakes.forEach(s => { 
+        allSnakes.forEach(s => { 
         if (s.dead || (s.id === 2 && gameMode === 1)) return; 
         if (Date.now() < s.ghostUntil && s !== cameraSnake) return;
         const ghost = Date.now() < s.ghostUntil; const leader = s.id === leaderId; const isSlowed = Date.now() < s.slowedUntil;
-                        const gTimeLeft = s.gravityActiveUntil - Date.now();
+        
+        // Calculate nightmare fog dimming for AI snakes (NEEDED HERE TOO)
+        let nightmareDim = 1.0;
+        if (isNightmare && s.isAI) {
+            const distToCamera = Math.sqrt(
+                (s.x - cameraSnake.x) ** 2 + (s.y - cameraSnake.y) ** 2
+            );
+            if (distToCamera > nightmareSettings.fogVisibleRadius) {
+                nightmareDim = nightmareSettings.fogAIOpacity;
+            }
+        }
+        
+        const gTimeLeft = s.gravityActiveUntil - Date.now();
         const gElapsed = CONFIG.gravityActiveDuration - gTimeLeft;
         let gFade = 0;
         if (gTimeLeft > 0) {
@@ -2088,7 +2319,9 @@ if (isBoosting) {
         }
 
         ctx.save();
-        ctx.globalAlpha = ghost ? 0.35 + Math.sin(Date.now()/100)*0.15 : 1.0;
+        const baseAlpha = ghost ? 0.35 + Math.sin(Date.now()/100)*0.15 : 1.0;
+        ctx.globalAlpha = baseAlpha * nightmareDim;
+        ctx.globalAlpha = baseAlpha * nightmareDim;
         
         // Use gFade to transition the shadowBlur from normal to 100
         const baseBlur = (leader ? 25 : (s.isAI ? 0 : 15));
@@ -2161,10 +2394,67 @@ window.addEventListener('pointercancel', handlePointerUp);
 function loop() {
     if (!gameActive || gamePaused) return;
     updateVenomPhysics();
-    let topScore = -1; allSnakes.forEach(s => { if (s.id === 2 && gameMode === 1) return; s.update(); if (!s.dead && s.score > topScore) { topScore = s.score; leaderId = s.id; } });
-    const relevantSnakes = allSnakes.filter(s => !(s.id === 2 && gameMode === 1)); const top5 = [...relevantSnakes].sort((a,b) => b.score - a.score).slice(0, 5);
-    let html = ""; top5.forEach((s, idx) => { const isLeader = (s.id === leaderId && s.score > 0); html += `<div class="lb-item ${isLeader ? 'lb-leader' : ''}" style="color:${s.isAI && !isLeader ?'#fff':s.color}"><span class="lb-name">${idx+1}.${s.name.substring(0,7)}</span><span class="lb-score">${s.score}</span></div>`; });
-    lbLists[0].innerHTML = lbLists[1].innerHTML = html;
+    
+    let topScore = -1; 
+    allSnakes.forEach(s => { 
+        if (s.id === 2 && gameMode === 1) return; 
+        s.update(); 
+        
+        // Track highest score
+        if (!s.isAI && s.score > gameStats.highestScore) {
+            gameStats.highestScore = s.score;
+            saveStats();
+        }
+        
+        if (!s.dead && s.score > topScore) { 
+            topScore = s.score; 
+            leaderId = s.id; 
+        } 
+    });
+    
+    // Track leader time
+    const isPlayerLeader = (leaderId === p1.id || (gameMode === 2 && leaderId === p2.id));
+    if (isPlayerLeader && !wasLeaderLastFrame) {
+        currentLeaderStartTime = Date.now();
+        wasLeaderLastFrame = true;
+    } else if (!isPlayerLeader && wasLeaderLastFrame) {
+        const leaderDuration = Date.now() - currentLeaderStartTime;
+        if (leaderDuration > gameStats.longestLeaderTime) {
+            gameStats.longestLeaderTime = leaderDuration;
+            saveStats();
+        }
+        wasLeaderLastFrame = false;
+    }
+    
+    const relevantSnakes = allSnakes.filter(s => !(s.id === 2 && gameMode === 1));
+const sortedSnakes = [...relevantSnakes].sort((a,b) => b.score - a.score);
+
+// Function to generate leaderboard HTML for a specific player's view
+function generateLeaderboardHTML(viewerSnake) {
+    const viewerRank = sortedSnakes.findIndex(s => s.id === viewerSnake.id) + 1;
+    const inTop5 = viewerRank <= 5 && viewerRank > 0;
+    
+    let html = "";
+    const displaySnakes = inTop5 ? sortedSnakes.slice(0, 5) : [...sortedSnakes.slice(0, 4), viewerSnake];
+    
+    displaySnakes.forEach((s, idx) => {
+        const actualRank = inTop5 ? (idx + 1) : (idx < 4 ? (idx + 1) : viewerRank);
+        const isLeader = (s.id === leaderId && s.score > 0);
+        const isViewer = (s.id === viewerSnake.id);
+        
+        html += `<div class="lb-item ${isLeader ? 'lb-leader' : ''}" style="color:${s.isAI && !isLeader ? '#fff' : s.color}">
+            <span class="lb-name">${actualRank}.${s.name.substring(0,7)}</span>
+            <span class="lb-score">${s.score}</span>
+        </div>`;
+    });
+    
+    return html;
+}
+
+lbLists[0].innerHTML = generateLeaderboardHTML(p1);
+if (gameMode === 2) {
+    lbLists[1].innerHTML = generateLeaderboardHTML(p2);
+}
     canvases.forEach((c, i) => { if (i === 1 && gameMode === 1) return; const ctx = c.getContext('2d'); ctx.fillStyle = "#000"; ctx.fillRect(0, 0, c.width, c.height); render(ctx, i === 0 ? p1 : p2); uis[i].innerText = `${(i===0?p1:p2).name}: ${(i===0?p1:p2).score}`; });
     animationId = requestAnimationFrame(loop);
 }
