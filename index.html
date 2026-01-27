@@ -21,9 +21,20 @@
         }
 
         .selection-area {
-            flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
-            width: 100%; box-sizing: border-box; padding: 10px;
-        }
+    flex: 1; 
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+    justify-content: center; 
+    width: 100%; 
+    box-sizing: border-box; 
+    padding: 10px;
+}
+
+/* ONLY shift content down when in Single Player mode (data-mode="1") */
+#powerup-screen[data-mode="1"] .selection-area .subtitle {
+    margin-top: 35px;
+}
         
         .powerup-divider {
     height: 4px;
@@ -132,13 +143,31 @@
             transform: scale(1.2);
             box-shadow: 0 0 10px #fff;
         }
-        /* Difficulty Buttons - Horizontal (Single Player) */
+        /* Updated container to maintain fixed height and prevent layout shift */
 .difficulty-row-horizontal {
-    display: none; /* Hidden by default, shown in single player */
-    flex-direction: row;
-    gap: 8px;
-    margin-top: 15px;
+    display: none; 
+    flex-direction: row; 
+    gap: 10px; 
+    margin-top: 15px; 
     justify-content: center;
+    flex-wrap: wrap; 
+    max-width: 320px;
+    height: 85px; /* Added fixed height to stop other elements from being pushed up */
+}
+
+                .difficulty-btn.nightmare-btn {
+    color: #ff0000 !important;
+    border-color: #ff0000 !important;
+    font-size: 1.5rem !important;
+    letter-spacing: 5px !important;
+    text-indent: 2px !important; 
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 8px auto 0 auto !important; 
+    padding: 8px 0 !important; 
+    flex: 0 1 auto !important; 
+    width: 210px !important; 
 }
 
 .difficulty-btn {
@@ -233,7 +262,6 @@
     border-color: #ff0000;
     font-size: 1rem;
     width: 100%;
-    margin-top: 10px;
     letter-spacing: 3px;
 }
 
@@ -333,13 +361,13 @@
             <div class="color-box" style="background: #ff0000;" onclick="selectColor(1, '#ff0000')"></div>
             <div class="color-box" style="background: #ff8800;" onclick="selectColor(1, '#ff8800')"></div>
         </div>
-            <!--             <!-- Difficulty buttons for Single Player (horizontal) -->
-    <div class="difficulty-row-horizontal" id="p1-difficulty-row">
-        <button class="difficulty-btn" onclick="selectDifficulty(1, 'easy')">EASY</button>
-        <button class="difficulty-btn selected" onclick="selectDifficulty(1, 'normal')">NORMAL</button>
-        <button class="difficulty-btn" onclick="selectDifficulty(1, 'hard')">HARD</button>
-        <button class="difficulty-btn nightmare-btn" onclick="selectDifficulty(1, 'nightmare')">NIGHTMARE</button>
-    </div>
+                    <div class="difficulty-row-horizontal" id="p1-difficulty-row">
+            <button class="difficulty-btn" onclick="selectDifficulty(1, 'easy')">EASY</button>
+            <button class="difficulty-btn selected" onclick="selectDifficulty(1, 'normal')">NORMAL</button>
+            <button class="difficulty-btn" onclick="selectDifficulty(1, 'hard')">HARD</button>
+            
+            <button class="difficulty-btn nightmare-btn" id="p1-nightmare-btn" onclick="selectDifficulty(1, 'nightmare')">NIGHTMARE</button>
+        </div>
     <!-- Difficulty buttons for Multiplayer (vertical, left side) -->
     <div class="difficulty-row-vertical" id="p1-difficulty-vertical">
         <button class="difficulty-btn-vertical" onclick="selectDifficulty(1, 'easy')">EASY</button>
@@ -554,23 +582,23 @@
         <div style="width: 90%; max-width: 500px; background: rgba(255, 255, 255, 0.05); border: 2px solid #333; border-radius: 10px; padding: 20px; text-align: left;">
             <div style="color: #00f2ff; font-size: 1.2rem; margin-bottom: 20px; display: flex; justify-content: space-between;">
                 <span>Highest Score:</span>
-                <span id="stat-highest-score" style="color: gold;">0</span>
+                <span id="stat-highest-score" style="color: #ff00de;">0</span>
             </div>
             <div style="color: #00f2ff; font-size: 1.2rem; margin-bottom: 20px; display: flex; justify-content: space-between;">
                 <span>Total Deaths:</span>
-                <span id="stat-total-deaths" style="color: #ff0000;">0</span>
+                <span id="stat-total-deaths" style="color: #ff00de;">0</span>
             </div>
             <div style="color: #00f2ff; font-size: 1.2rem; margin-bottom: 20px; display: flex; justify-content: space-between;">
                 <span>Snakes Killed:</span>
-                <span id="stat-snakes-killed" style="color: #2bff00;">0</span>
+                <span id="stat-snakes-killed" style="color: #ff00de;">0</span>
             </div>
             <div style="color: #00f2ff; font-size: 1.2rem; margin-bottom: 20px; display: flex; justify-content: space-between;">
                 <span>Longest Leader Time:</span>
-                <span id="stat-longest-leader" style="color: gold;">0s</span>
+                <span id="stat-longest-leader" style="color: #ff00de;">0s</span>
             </div>
             <div style="color: #00f2ff; font-size: 1.2rem; display: flex; justify-content: space-between;">
                 <span>Games Played:</span>
-                <span id="stat-games-played" style="color: #fff;">0</span>
+                <span id="stat-games-played" style="color: #ff00de;">0</span>
             </div>
         </div>
         
@@ -676,7 +704,7 @@ const CONFIG = {
             aiCount: 15,
             speedMultiplier: 0.75,  // 25% slower
             hunterLimit: 100,
-            playerSpeedMult: 1.0
+            playerSpeedMult: 0.75
         },
         normal: {
             aiCount: 30,
@@ -686,19 +714,19 @@ const CONFIG = {
         },
         hard: {
             aiCount: 45,
-            speedMultiplier: 1.0,
-            hunterLimit: 5,
-            playerSpeedMult: 1.15  // 15% faster player
+            speedMultiplier: 1.25,
+            hunterLimit: 100,
+            playerSpeedMult: 1.25  // 15% faster player
         },
         nightmare: {
             aiCount: 60,
-            speedMultiplier: 1.0,
-            hunterLimit: 6,
-            playerSpeedMult: 1.15,
+            speedMultiplier: 1.25,
+            hunterLimit: 100,
+            playerSpeedMult: 1.25,
             fogEnabled: true,
-            fogVisibleRadius: 400,     // Adjust this for visible area around player
-            fogOpacity: 0.85,           // Adjust this for fog darkness (0.0-1.0)
-            fogAIOpacity: 0.15          // How visible AI snakes are through fog (0.0-1.0)
+            fogVisibleRadius: 100,     // Adjust this for visible area around player
+            fogOpacity: 0.9,           // Adjust this for fog darkness (0.0-1.0)
+            fogAIOpacity: 0.9          // How visible AI snakes are through fog (0.0-1.0)
         }
     }
 };
@@ -853,6 +881,7 @@ function showPowerupSelect(mode) {
         
         // Show horizontal difficulty, hide vertical
         document.getElementById('p1-difficulty-row').style.display = 'flex';
+        document.querySelector('.nightmare-btn').style.display = 'block';
         document.getElementById('p1-difficulty-vertical').style.display = 'none';
         document.getElementById('p2-difficulty-vertical').style.display = 'none';
     } else { 
@@ -868,6 +897,7 @@ function showPowerupSelect(mode) {
         
         // Show vertical difficulty buttons, hide horizontal
         document.getElementById('p1-difficulty-row').style.display = 'none';
+        document.querySelector('.nightmare-btn').style.display = 'none';
         document.getElementById('p1-difficulty-vertical').style.display = 'flex';
         document.getElementById('p2-difficulty-vertical').style.display = 'flex';
     }
@@ -2019,36 +2049,9 @@ function updateVenomPhysics() {
 function render(ctx, cameraSnake) {
     ctx.save(); ctx.translate(ctx.canvas.width/2 - cameraSnake.x, ctx.canvas.height/2 - cameraSnake.y);
     
-    // === NIGHTMARE FOG (RENDERED FIRST) ===
+    // Check if nightmare mode is active (we'll use this later)
     const nightmareSettings = CONFIG.difficulty.nightmare;
     const isNightmare = p1Difficulty === 'nightmare' && nightmareSettings.fogEnabled;
-    
-    if (isNightmare && !cameraSnake.isAI) {
-        // Save current transform
-        ctx.save();
-        // Reset to screen coordinates
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
-        
-        // Create radial gradient for fog
-        const centerX = ctx.canvas.width / 2;
-        const centerY = ctx.canvas.height / 2;
-        const maxDim = Math.max(ctx.canvas.width, ctx.canvas.height);
-        
-        const fogGrad = ctx.createRadialGradient(
-            centerX, centerY, nightmareSettings.fogVisibleRadius,
-            centerX, centerY, maxDim
-        );
-        fogGrad.addColorStop(0, `rgba(0, 0, 0, 0)`);
-        fogGrad.addColorStop(0.3, `rgba(0, 0, 0, ${nightmareSettings.fogOpacity * 0.5})`);
-        fogGrad.addColorStop(1, `rgba(0, 0, 0, ${nightmareSettings.fogOpacity})`);
-        
-        ctx.fillStyle = fogGrad;
-        ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-        ctx.restore();
-        
-        // Translate back for world rendering
-        ctx.translate(ctx.canvas.width/2 - cameraSnake.x, ctx.canvas.height/2 - cameraSnake.y);
-    }
     
                 // --- GRAVITY WELL VISUAL WITH SMOOTH FADE ---
     const gravityTimeLeft = cameraSnake.gravityActiveUntil - Date.now();
@@ -2123,23 +2126,9 @@ function render(ctx, cameraSnake) {
     }
 
     // --- FIXED AURA & BODY BOOST RENDERING ---
-        allSnakes.forEach(s => { 
+                allSnakes.forEach(s => { 
         if (s.dead) return;
         if (Date.now() < s.ghostUntil && s !== cameraSnake) return;
-
-        // Calculate nightmare fog dimming for AI snakes
-        const nightmareSettings = CONFIG.difficulty.nightmare;
-        const isNightmare = p1Difficulty === 'nightmare' && nightmareSettings.fogEnabled;
-        let nightmareDim = 1.0;
-        
-        if (isNightmare && s.isAI) {
-            const distToCamera = Math.sqrt(
-                (s.x - cameraSnake.x) ** 2 + (s.y - cameraSnake.y) ** 2
-            );
-            if (distToCamera > nightmareSettings.fogVisibleRadius) {
-                nightmareDim = nightmareSettings.fogAIOpacity;
-            }
-        }
 
         let auraColor = null;
 const isBoosting = Date.now() < s.boostActiveUntil;
@@ -2295,21 +2284,19 @@ if (isBoosting) {
     // Reset alpha to 100% so the snakes don't look transparent too!
     ctx.globalAlpha = 1.0;
     
-        allSnakes.forEach(s => { 
+                                allSnakes.forEach(s => { 
         if (s.dead || (s.id === 2 && gameMode === 1)) return; 
         if (Date.now() < s.ghostUntil && s !== cameraSnake) return;
-        const ghost = Date.now() < s.ghostUntil; const leader = s.id === leaderId; const isSlowed = Date.now() < s.slowedUntil;
         
-        // Calculate nightmare fog dimming for AI snakes (NEEDED HERE TOO)
-        let nightmareDim = 1.0;
+                // === NIGHTMARE: AI VISIBILITY & GLOW ===
+        let isInFog = false;
         if (isNightmare && s.isAI) {
-            const distToCamera = Math.sqrt(
-                (s.x - cameraSnake.x) ** 2 + (s.y - cameraSnake.y) ** 2
-            );
-            if (distToCamera > nightmareSettings.fogVisibleRadius) {
-                nightmareDim = nightmareSettings.fogAIOpacity;
-            }
+            const distToCamera = Math.sqrt((s.x - cameraSnake.x) ** 2 + (s.y - cameraSnake.y) ** 2);
+            // AI is "in fog" if further than the visibility radius
+            isInFog = distToCamera > nightmareSettings.fogVisibleRadius;
         }
+        
+        const ghost = Date.now() < s.ghostUntil; const leader = s.id === leaderId; const isSlowed = Date.now() < s.slowedUntil;
         
         const gTimeLeft = s.gravityActiveUntil - Date.now();
         const gElapsed = CONFIG.gravityActiveDuration - gTimeLeft;
@@ -2318,10 +2305,9 @@ if (isBoosting) {
             gFade = (gElapsed < 1000) ? gElapsed / 1000 : (gTimeLeft < 1000 ? gTimeLeft / 1000 : 1);
         }
 
-        ctx.save();
+                ctx.save();
         const baseAlpha = ghost ? 0.35 + Math.sin(Date.now()/100)*0.15 : 1.0;
-        ctx.globalAlpha = baseAlpha * nightmareDim;
-        ctx.globalAlpha = baseAlpha * nightmareDim;
+        ctx.globalAlpha = baseAlpha;
         
         // Use gFade to transition the shadowBlur from normal to 100
         const baseBlur = (leader ? 25 : (s.isAI ? 0 : 15));
@@ -2362,6 +2348,47 @@ if (isBoosting) {
         ctx.restore(); 
     });
     ctx.restore();
+        // === NIGHTMARE FOG (FIXED: TRANSLUCENT GRAY + FILM GRAIN) ===
+    if (isNightmare) {
+        ctx.save();
+        // Reset to screen coordinates so the fog covers the whole screen
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        
+        const w = ctx.canvas.width;
+        const h = ctx.canvas.height;
+        const centerX = w / 2;
+        const centerY = h / 2;
+        const visRadius = nightmareSettings.fogVisibleRadius;
+
+        // 1. Create the Gray Mist
+        // This makes a clear "lantern" circle around the player that fades into gray
+        const fogGrad = ctx.createRadialGradient(
+            centerX, centerY, visRadius * 0.4, 
+            centerX, centerY, visRadius * 1.1
+        );
+        fogGrad.addColorStop(0, "rgba(60, 60, 60, 0)");      // Clear center
+        fogGrad.addColorStop(0.7, "rgba(80, 80, 80, 0.95)"); // Mid-gray mist
+        fogGrad.addColorStop(1, "rgba(50, 50, 50, 0.99)");   // Heavy outer fog
+
+        ctx.fillStyle = fogGrad;
+        ctx.fillRect(0, 0, w, h);
+
+        // 2. Add the Film Grain Effect
+        // We draw 4,000 tiny random dots. Since this runs every frame, 
+        // the dots change position constantly, creating "moving" grain.
+        ctx.globalAlpha = 0.07; // Keep the grain subtle so it doesn't distract
+        for (let i = 0; i < 4000; i++) {
+            const grainX = Math.random() * w;
+            const grainY = Math.random() * h;
+            const grainSize = Math.random() * 1.8;
+            
+            // Randomly pick black or white for each speck of grain
+            ctx.fillStyle = Math.random() > 0.5 ? "#ffffff" : "#000000";
+            ctx.fillRect(grainX, grainY, grainSize, grainSize);
+        }
+
+        ctx.restore();
+    }
     const size = 90, margin = 20; const mx = (cameraSnake.id === 1 && gameMode === 2) ? ctx.canvas.width - size - margin : margin; const my = (cameraSnake.id === 1 && gameMode === 2) ? margin : ctx.canvas.height - size - margin; ctx.save(); ctx.setTransform(1,0,0,1,0,0); ctx.globalAlpha = 0.6; ctx.fillStyle = "#111"; ctx.fillRect(mx, my, size, size); ctx.strokeStyle = "#ff0000"; ctx.lineWidth = 2; ctx.strokeRect(mx, my, size, size); allSnakes.forEach(s => { if(!s.dead && !(s.id === 2 && gameMode === 1) && Date.now() >= s.ghostUntil) { 
         ctx.fillStyle = (s.id === leaderId && s.score > 0) ? "gold" : s.color; 
         ctx.beginPath(); ctx.arc(mx+(s.x/WORLD.width)*size, my+(s.y/WORLD.height)*size, 2.5,0,Math.PI*2); ctx.fill(); 
