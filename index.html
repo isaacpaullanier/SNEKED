@@ -1121,12 +1121,10 @@ function selectDifficulty(playerNum, difficulty) {
 
 function checkStartConditions() {
     if (gameMode === 1) {
-        // Single player: P1 power + P1 color + P1 difficulty required (stays on same screen)
-        if (p1Selected !== null && p1Color !== null && p1Difficulty !== null) {
+        if (p1Selected !== null && p1Color !== null) {
             setTimeout(() => startGame(), 300);
         }
     } else {
-        // Multiplayer: Both players need power AND color, then go to difficulty screen
         if (p1Selected !== null && p1Color !== null && 
             p2Selected !== null && p2Color !== null) {
             setTimeout(() => showDifficultyScreen(), 300);
@@ -1134,7 +1132,6 @@ function checkStartConditions() {
     }
 }
 function showDifficultyScreen() {
-    document.getElementById('powerup-screen').style.display = 'none';
     document.getElementById('difficulty-screen').style.display = 'flex';
 
     // Clear difficulty selections – REQUIRE player input
@@ -1158,11 +1155,9 @@ function backToPowerupSelect() {
 }
 
 function selectPlayerDifficulty(playerNum, difficulty) {
-    // Explicitly set difficulty every click
     if (playerNum === 1) p1Difficulty = difficulty;
     if (playerNum === 2) p2Difficulty = difficulty;
 
-    // Update UI selection cleanly
     const areaId = playerNum === 1 ? 'p1-diff-area' : 'p2-diff-area';
     const buttons = document.querySelectorAll(`#${areaId} .power-btn`);
 
@@ -1173,14 +1168,24 @@ function selectPlayerDifficulty(playerNum, difficulty) {
         }
     });
 
-    // HARD gate: both must be chosen AND equal
-    if (
-        gameMode === 2 &&
-        p1Difficulty &&
-        p2Difficulty &&
-        p1Difficulty === p2Difficulty
-    ) {
-        startGame();
+    // In single player, start immediately upon selecting difficulty
+    if (gameMode === 1) {
+        setTimeout(() => startGame(), 300);
+    } 
+    // In multiplayer, check that BOTH players have chosen and AGREED on the difficulty
+    else if (gameMode === 2 && p1Difficulty !== null && p2Difficulty !== null) {
+        if (p1Difficulty === p2Difficulty) {
+            document.getElementById('difficulty-screen').style.display = 'none';
+            setTimeout(() => startGame(), 300);
+        } else {
+            // Flash buttons red or provide visual cue that difficulties must match
+            buttons.forEach(btn => {
+                if (btn.textContent.toLowerCase() === difficulty) {
+                    btn.style.borderColor = '#ff0000';
+                    setTimeout(() => btn.style.borderColor = '', 1000);
+                }
+            });
+        }
     }
 }
 function startGame() {
@@ -1722,7 +1727,7 @@ if (eatenSeg) {
 }
 }
 
-            handleAIBehavior(speed) {
+                        handleAIBehaviorCore(speed) {
     let immediateDanger = false;
     
     // ============================================================
@@ -2120,13 +2125,106 @@ if (this.x < 120 || this.x > WORLD.width - 120 ||
             while (diff < -Math.PI) diff += Math.PI * 2;
             while (diff > Math.PI) diff -= Math.PI * 2;
             this.angle += diff * ((this.isHunter || this.isCivilWarAI) ? 0.35 : 0.15);
-        } else {
+                } else {
             this.angle += (Math.random() - 0.5) * 0.1;
         }
     }
 }
 
+        // ============================================================
+        // AI SAFETY NET
+        // Runs AFTER all the aggressive hunting / cutoff / coil logic.
+        // If the heading the AI just picked would drive it into a tail
+        // or a wall, it turns to the nearest clear heading instead.
+        // When the way ahead is clear, the AI's plan is left untouched.
+        // ============================================================
+        handleAIBehavior(speed) {
+            this.handleAIBehaviorCore(speed);   // original aggressive logic
+            this.applyAISafetyNet(speed);       // last-second "don't die" check
+        }
 
+        applyAISafetyNet(speed) {
+            if (this.dead) return;
+
+            // ---- TUNING KNOBS ----
+            const LOOK_FRAMES = 20;   // how many frames ahead the AI checks
+            const LOOK_MIN = 100;     // never look less than this many pixels ahead
+            const CLEARANCE = 5;      // extra gap (px) kept from other snakes
+            // ----------------------
+
+            const dashing = this.isDashing && this.length > 20;
+            const stepLen = speed * (dashing ? 1.7 * this.hunterSpeedBoost : 1);
+            const lookDist = Math.max(LOOK_MIN, stepLen * LOOK_FRAMES);
+            const myR = this.width / 2;
+            const reachSq = (lookDist + 60) ** 2;
+
+            // 1) Collect every nearby snake segment (whole tails, not just heads)
+            const obstacles = [];
+            for (const other of allSnakes) {
+                if (other === this || other.dead) continue;
+                const t = other.tail;
+                for (let i = t.length - 1; i >= 0; i -= 2) {
+                    const seg = t[i];
+                    const dx = seg.x - this.x, dy = seg.y - this.y;
+                    if (dx * dx + dy * dy < reachSq) obstacles.push(seg);
+                }
+            }
+
+            // 2) How far can we travel along a heading before hitting something?
+            const wallPad = myR + 4;
+            const freeDistance = (ang) => {
+                const cx = Math.cos(ang), cy = Math.sin(ang);
+                for (let d = stepLen; d <= lookDist; d += 6) {
+                    const px = this.x + cx * d, py = this.y + cy * d;
+                    if (px < wallPad || px > WORLD.width - wallPad ||
+                        py < wallPad || py > WORLD.height - wallPad) return d;
+                    for (let k = 0; k < obstacles.length; k++) {
+                        const o = obstacles[k];
+                        const rr = myR + o.w / 2 + CLEARANCE;
+                        const ox = px - o.x, oy = py - o.y;
+                        if (ox * ox + oy * oy < rr * rr) return d;
+                    }
+                }
+                return lookDist;
+            };
+
+            // 3) Current plan is safe? Then do nothing (keeps the AI aggressive)
+            const currentFree = freeDistance(this.angle);
+            if (currentFree >= lookDist) return;
+
+            // 4) Blocked: stop dashing and cancel any locked cutoff turn
+            this.isDashing = false;
+            this.cutoffTimer = 0;
+            this.cutoffAngle = null;
+
+            // Prefer dodging toward the nearest player so the AI stays aggressive
+            let prefer = 1, nearest = null, nd = Infinity;
+            for (const p of [p1, p2]) {
+                if (!p || p.dead || (p.id === 2 && gameMode === 1)) continue;
+                const d = (p.x - this.x) ** 2 + (p.y - this.y) ** 2;
+                if (d < nd) { nd = d; nearest = p; }
+            }
+            if (nearest) {
+                let diff = Math.atan2(nearest.y - this.y, nearest.x - this.x) - this.angle;
+                while (diff < -Math.PI) diff += Math.PI * 2;
+                while (diff > Math.PI) diff -= Math.PI * 2;
+                prefer = diff >= 0 ? 1 : -1;
+            }
+
+            // 5) Take the smallest turn that gives a fully clear path
+            let bestAngle = this.angle, bestFree = currentFree;
+            const offsets = [0.2, 0.4, 0.6, 0.8, 1.0, 1.3, 1.6, 2.0, 2.5, Math.PI];
+            search:
+            for (const off of offsets) {
+                for (const sign of [prefer, -prefer]) {
+                    const a = this.angle + sign * off;
+                    const f = freeDistance(a);
+                    if (f >= lookDist) { bestAngle = a; break search; }
+                    if (f > bestFree) { bestFree = f; bestAngle = a; }
+                }
+            }
+            this.angle = bestAngle;
+        }
 
         stopChasing() {
         this.isTrapping = false;
